@@ -5,7 +5,7 @@
 <div class="card">
   <div class="card__header">查询语句</div>
   <div class="card__body">
-    <form method="post" action="/query" id="qform">
+    <form method="post" action="{{.Base}}/query" id="qform">
       <input type="hidden" name="csrf_token" value="{{.CSRF}}" />
       <div class="field">
         <label for="sql">SQL</label>

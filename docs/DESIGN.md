@@ -315,11 +315,15 @@ func secretMatch(input, fromConfig string) bool {
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o mini-dba .
 ```
 
-前置机执行：`./mini-dba -config ./config.yaml`（参数名以实现为准）。Nginx 反代示例：
+前置机执行：`./mini-dba -config ./config.yaml`（参数名以实现为准）。
+
+**子路径反代**：若浏览器入口为 `https://主机/dba/...`，而反代将前缀剥掉后把 `/`、`/login` 等转发到本进程，需在 **`config.yaml` 设置 `base_path: /dba`**（与 `location` 前缀一致，无尾斜杠）。本进程对内路由仍为根路径；`base_path` 仅用于生成对外的重定向、链接与 Cookie `Path`。
+
+Nginx 反代示例（**`proxy_pass` 须带尾斜杠**，以便去掉 `/dba` 前缀）：
 
 ```nginx
 location /dba/ {
-    proxy_pass http://127.0.0.1:8080;
+    proxy_pass http://127.0.0.1:8080/;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
 }
@@ -331,6 +335,7 @@ location /dba/ {
 - [ ] `config.yaml` 已设 **非默认、足够强的 `secret_key`**  
 - [ ] `databases` / DSN 已配置且 MySQL **网络可达**  
 - [ ] 防火墙 / 安全组放行监听端口  
+- [ ] 子路径反代时 **`base_path`** 与 **`location` / `proxy_pass`** 约定一致  
 - [ ] （可选）反代 TLS、Basic Auth、IP 限制  
 
 ---

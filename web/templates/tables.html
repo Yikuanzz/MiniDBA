@@ -12,7 +12,7 @@
           {{range .Tables}}
           <tr>
             <td><strong>{{.}}</strong></td>
-            <td><a href="/browse?table={{.}}">浏览</a> · <a href="/table/{{.}}/schema">结构</a></td>
+            <td><a href="{{$.Base}}/browse?table={{.}}">浏览</a> · <a href="{{$.Base}}/table/{{.}}/schema">结构</a></td>
           </tr>
           {{end}}
         </tbody>

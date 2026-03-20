@@ -13,23 +13,30 @@ const (
 	formField    = "csrf_token"
 )
 
-// Cookie 返回 CSRF double-submit cookie。
-func Cookie(token string) *http.Cookie {
+func normCookiePath(p string) string {
+	if p == "" {
+		return "/"
+	}
+	return p
+}
+
+// Cookie 返回 CSRF double-submit cookie。path 为空时等同于 "/"。
+func Cookie(token, path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     cookieName,
 		Value:    token,
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   cookieMaxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
 }
 
-func ClearCookie() *http.Cookie {
+func ClearCookie(path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     cookieName,
 		Value:    "",
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -39,8 +46,8 @@ func ClearCookie() *http.Cookie {
 // FieldName 表单字段名。
 func FieldName() string { return formField }
 
-// Ensure 若已登录但无 CSRF Cookie，则写入新令牌（在 RequireAuth 之后对 GET 调用）。
-func Ensure(w http.ResponseWriter, r *http.Request) (token string, err error) {
+// Ensure 若已登录但无 CSRF Cookie，则写入新令牌（鉴权通过后的 GET 中调用）。
+func Ensure(w http.ResponseWriter, r *http.Request, cookiePath string) (token string, err error) {
 	c, err := r.Cookie(cookieName)
 	if err == nil && c.Value != "" {
 		return c.Value, nil
@@ -49,7 +56,7 @@ func Ensure(w http.ResponseWriter, r *http.Request) (token string, err error) {
 	if err != nil {
 		return "", err
 	}
-	http.SetCookie(w, Cookie(token))
+	http.SetCookie(w, Cookie(token, cookiePath))
 	return token, nil
 }
 

@@ -1,7 +1,7 @@
 {{define "content"}}
 <h1 class="page-title">数据浏览</h1>
 {{if eq .BrowseTable ""}}
-<p class="page-sub">请从 <a href="/tables">表列表</a> 选择一张表。</p>
+<p class="page-sub">请从 <a href="{{.Base}}/tables">表列表</a> 选择一张表。</p>
 {{else}}
 <p class="page-sub">表 <strong>{{.BrowseTable}}</strong> · 每页 {{.PageSize}} 条，最多 {{.MaxPageSize}}</p>
 
@@ -19,7 +19,7 @@
     <button type="button" class="btn btn--outlined" disabled>上一页</button>
     {{end}}
     {{if lt .Page .PageCount}}
-    <a class="btn btn--outlined browse-page-link" href="/browse?table={{.BrowseTable}}&page={{inc .Page}}">下一页</a>
+    <a class="btn btn--outlined browse-page-link" href="{{.Base}}/browse?table={{.BrowseTable}}&page={{inc .Page}}">下一页</a>
     {{else}}
     <button type="button" class="btn btn--outlined" disabled>下一页</button>
     {{end}}

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>进入 MiniDBA</title>
-  <link rel="stylesheet" href="/static/css/theme.css" />
+  <link rel="stylesheet" href="{{.Base}}/static/css/theme.css" />
   <style>
     .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
     .login-card { width: 100%; max-width: 400px; }
@@ -19,7 +19,7 @@
       <h1>进入 MiniDBA</h1>
       <p class="sub">请输入 <code>config.yaml</code> 中的 <code>secret_key</code>。</p>
       {{if .Bad}}<div class="alert alert--error" role="alert"><span>密钥不正确，请重试。</span></div>{{end}}
-      <form method="post" action="/login" autocomplete="off">
+      <form method="post" action="{{.Base}}/login" autocomplete="off">
         <div class="field">
           <label for="secret_key">secret_key</label>
           <input class="input" type="password" id="secret_key" name="secret_key" required placeholder="与配置文件一致" />

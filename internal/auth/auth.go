@@ -59,12 +59,19 @@ func VerifyToken(secret, token string) bool {
 	return subtle.ConstantTimeCompare([]byte(parts[1]), []byte(expected)) == 1
 }
 
-// SessionCookie 设置会话 Cookie。
-func SessionCookie(value string) *http.Cookie {
+func normCookiePath(p string) string {
+	if strings.TrimSpace(p) == "" {
+		return "/"
+	}
+	return p
+}
+
+// SessionCookie 设置会话 Cookie。path 为空或仅空白时等同于 "/"。
+func SessionCookie(value, path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     CookieName,
 		Value:    value,
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   cookieMaxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -72,11 +79,11 @@ func SessionCookie(value string) *http.Cookie {
 }
 
 // ClearSessionCookie 清除会话。
-func ClearSessionCookie() *http.Cookie {
+func ClearSessionCookie(path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     CookieName,
 		Value:    "",
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -84,22 +91,22 @@ func ClearSessionCookie() *http.Cookie {
 }
 
 // ConnCookie 当前连接。
-func ConnCookie(connName string) *http.Cookie {
+func ConnCookie(connName, path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     CookieConn,
 		Value:    connName,
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   cookieMaxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
 }
 
-func ClearConnCookie() *http.Cookie {
+func ClearConnCookie(path string) *http.Cookie {
 	return &http.Cookie{
 		Name:     CookieConn,
 		Value:    "",
-		Path:     "/",
+		Path:     normCookiePath(path),
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
@@ -130,22 +137,8 @@ func headerSecretOK(r *http.Request, secret string) bool {
 	return false
 }
 
-// RequireAuth 未授权则 302 /login（API 风格请求可返回 401）。
-func RequireAuth(secret string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !Authorized(r, secret) {
-			if wantsJSON(r) {
-				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-				return
-			}
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func wantsJSON(r *http.Request) bool {
+// WantsJSON 是否更可能期望 JSON（401 等）。
+func WantsJSON(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Accept"), "application/json")
 }
 

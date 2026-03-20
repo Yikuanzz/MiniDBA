@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -25,6 +26,8 @@ type Config struct {
 	MaxResultRows int        `yaml:"max_result_rows"`
 	PageSize      int        `yaml:"page_size"`
 	MaxPageSize   int        `yaml:"max_page_size"`
+	// BasePath 对外 URL 前缀（如反代 /dba/ 且剥离前缀时填 /dba）；见 DESIGN §10。空表示根路径。
+	BasePath string `yaml:"base_path"`
 }
 
 // ApplyDefaults 填充缺省上限。
@@ -44,12 +47,16 @@ func (c *Config) ApplyDefaults() {
 	if strings.TrimSpace(c.Listen) == "" {
 		c.Listen = "127.0.0.1:8080"
 	}
+	c.BasePath = normalizeBasePath(c.BasePath)
 }
 
 // Validate 校验配置与 DSN 形状。
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.SecretKey) == "" {
 		return fmt.Errorf("secret_key 不能为空")
+	}
+	if err := validateBasePath(c.BasePath); err != nil {
+		return err
 	}
 	if len(c.Databases) == 0 {
 		return fmt.Errorf("至少需要一条 databases 配置")
@@ -73,6 +80,43 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("重复的连接名: %q", name)
 		}
 		seen[name] = struct{}{}
+	}
+	return nil
+}
+
+func normalizeBasePath(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if !strings.HasPrefix(s, "/") {
+		s = "/" + s
+	}
+	s = path.Clean(s)
+	if s == "/" {
+		return ""
+	}
+	return s
+}
+
+func validateBasePath(p string) error {
+	if p == "" {
+		return nil
+	}
+	if !strings.HasPrefix(p, "/") {
+		return fmt.Errorf("base_path 必须以 / 开头")
+	}
+	if strings.HasSuffix(p, "/") {
+		return fmt.Errorf("base_path 不得以 / 结尾")
+	}
+	rest := p[1:]
+	for _, seg := range strings.Split(rest, "/") {
+		if seg == "" {
+			return fmt.Errorf("base_path 含空路径段")
+		}
+		if seg == ".." {
+			return fmt.Errorf("base_path 不得含 ..")
+		}
 	}
 	return nil
 }

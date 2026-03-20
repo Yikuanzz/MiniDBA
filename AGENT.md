@@ -5,7 +5,7 @@
 ## 产品定位
 
 - **Go 单二进制**，内网轻量 MySQL 运维 Web：**执行 SQL**、表列表、表结构、分页浏览、多连接（DSN）与 **`/settings` 保存写回 `config.yaml`**。
-- **`config.yaml`**：`secret_key`（`/login` 与会话 Cookie；亦可 **`X-MiniDBA-Secret`** / **`Authorization: Bearer`**）、`databases`（DSN）、`readonly`、`max_result_rows` 等。
+- **`config.yaml`**：`secret_key`（`/login` 与会话 Cookie；亦可 **`X-MiniDBA-Secret`** / **`Authorization: Bearer`**）、`databases`（DSN）、`readonly`、`base_path`（反代子路径前缀，可选）、`max_result_rows` 等。
 - **前端**：`html/template` + [`web/static/css/theme.css`](web/static/css/theme.css)；**`go:embed`** 打包 `web/templates` 与 `web/static`。历史目录 **`web/demo/`** 仅作可选参考，正式路由以主程序为准。
 
 ## 仓库结构

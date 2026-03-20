@@ -2,7 +2,7 @@
 <h1 class="page-title">连接设置</h1>
 <p class="page-sub">保存后写入配置文件并热重载连接（YAML 注释会丢失）。不修改 <code>secret_key</code>。</p>
 
-<form method="post" action="/settings">
+<form method="post" action="{{.Base}}/settings">
   <input type="hidden" name="csrf_token" value="{{.CSRF}}" />
 
   {{range $i, $d := .SettingsRows}}

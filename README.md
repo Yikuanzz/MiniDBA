@@ -14,7 +14,7 @@ go run . -config config.yaml
 task run
 ```
 
-从 `config.example.yaml` 复制为 `config.yaml`，设置 `secret_key` 与 `databases`。
+从 `config.example.yaml` 复制为 `config.yaml`，设置 `secret_key` 与 `databases`；若挂在反代子路径下，另设 **`base_path`**（见 `docs/DESIGN.md` §10）。
 
 ## 构建与发版
 

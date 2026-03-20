@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -99,7 +100,17 @@ func (s *Server) ListenAndServe() error {
 	mux.HandleFunc("GET /logout", s.handleLogout)
 
 	protected := func(h http.HandlerFunc) http.Handler {
-		return auth.RequireAuth(s.secret, h)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !auth.Authorized(r, s.secret) {
+				if auth.WantsJSON(r) {
+					http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+					return
+				}
+				http.Redirect(w, r, s.absPath("/login"), http.StatusSeeOther)
+				return
+			}
+			h.ServeHTTP(w, r)
+		})
 	}
 
 	mux.Handle("GET /", protected(s.handleHome))
@@ -131,10 +142,33 @@ func (s *Server) currentConnName(r *http.Request) string {
 }
 
 func (s *Server) ensureConnCookie(w http.ResponseWriter, r *http.Request, name string) {
-	http.SetCookie(w, auth.ConnCookie(name))
+	http.SetCookie(w, auth.ConnCookie(name, s.cookiePath()))
+}
+
+// basePath 返回规范化后的对外路径前缀，无则为 ""。
+func (s *Server) basePath() string { return s.cfgRL().BasePath }
+
+func (s *Server) cookiePath() string {
+	if s.basePath() == "" {
+		return "/"
+	}
+	return s.basePath()
+}
+
+// absPath 将进程内路径 rel（须以 / 开头）拼成浏览器应使用的绝对路径。
+func (s *Server) absPath(rel string) string {
+	if !strings.HasPrefix(rel, "/") {
+		rel = "/" + rel
+	}
+	bp := s.basePath()
+	if bp == "" {
+		return rel
+	}
+	return bp + rel
 }
 
 type pageData struct {
+	Base         string
 	Title        string
 	CSRF         string
 	NavActive    string
@@ -168,6 +202,7 @@ type settingsRow struct {
 func (s *Server) basePage(r *http.Request, title, nav, conn string, tok string, flashErr, flashOK string) pageData {
 	cfg := s.cfgRL()
 	return pageData{
+		Base:        s.basePath(),
 		Title:       title,
 		CSRF:        tok,
 		NavActive:   nav,

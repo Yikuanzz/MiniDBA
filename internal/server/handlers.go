@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -24,21 +25,24 @@ func (s *Server) syncConnCookie(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLoginGet(w http.ResponseWriter, r *http.Request) {
 	if auth.Authorized(r, s.secret) {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, s.absPath("/"), http.StatusSeeOther)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = s.loginT.Execute(w, struct{ Bad bool }{Bad: r.URL.Query().Get("error") != ""})
+	_ = s.loginT.Execute(w, struct {
+		Bad  bool
+		Base string
+	}{Bad: r.URL.Query().Get("error") != "", Base: s.basePath()})
 }
 
 func (s *Server) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/login?error=1", http.StatusSeeOther)
+		http.Redirect(w, r, s.absPath("/login?error=1"), http.StatusSeeOther)
 		return
 	}
 	key := strings.TrimSpace(r.FormValue("secret_key"))
 	if !auth.SecretMatch(key, s.secret) {
-		http.Redirect(w, r, "/login?error=1", http.StatusSeeOther)
+		http.Redirect(w, r, s.absPath("/login?error=1"), http.StatusSeeOther)
 		return
 	}
 	sess, err := auth.IssueSessionToken(s.secret)
@@ -46,24 +50,26 @@ func (s *Server) handleLoginPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, auth.SessionCookie(sess))
+	cp := s.cookiePath()
+	http.SetCookie(w, auth.SessionCookie(sess, cp))
 	tok, err := auth.RandomHex(32)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, csrf.Cookie(tok))
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.SetCookie(w, csrf.Cookie(tok, cp))
+	http.Redirect(w, r, s.absPath("/"), http.StatusSeeOther)
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, auth.ClearSessionCookie())
-	http.SetCookie(w, csrf.ClearCookie())
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	cp := s.cookiePath()
+	http.SetCookie(w, auth.ClearSessionCookie(cp))
+	http.SetCookie(w, csrf.ClearCookie(cp))
+	http.Redirect(w, r, s.absPath("/login"), http.StatusSeeOther)
 }
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -83,7 +89,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -120,7 +126,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTables(w http.ResponseWriter, r *http.Request) {
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -155,7 +161,7 @@ func (s *Server) handleTables(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -228,7 +234,7 @@ func getQuery(r *http.Request, k string) string {
 }
 
 func (s *Server) handleSchema(w http.ResponseWriter, r *http.Request) {
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -292,12 +298,39 @@ func (s *Server) handleSwitchDB(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown conn", http.StatusBadRequest)
 		return
 	}
-	http.SetCookie(w, auth.ConnCookie(name))
-	redir := "/"
-	if ref := r.Header.Get("Referer"); ref != "" {
-		redir = ref
+	http.SetCookie(w, auth.ConnCookie(name, s.cookiePath()))
+	http.Redirect(w, r, s.safeRefererRedirect(r), http.StatusSeeOther)
+}
+
+func (s *Server) safeRefererRedirect(r *http.Request) string {
+	fallback := s.absPath("/")
+	ref := strings.TrimSpace(r.Header.Get("Referer"))
+	if ref == "" {
+		return fallback
 	}
-	http.Redirect(w, r, redir, http.StatusSeeOther)
+	u, err := url.Parse(ref)
+	if err != nil || u.Path == "" {
+		return fallback
+	}
+	reqHost := r.Host
+	if u.Host != "" && !strings.EqualFold(u.Host, reqHost) {
+		return fallback
+	}
+	bp := s.cfgRL().BasePath
+	pq := u.Path
+	if u.RawQuery != "" {
+		pq += "?" + u.RawQuery
+	}
+	if bp == "" {
+		if strings.HasPrefix(u.Path, "/") {
+			return pq
+		}
+		return fallback
+	}
+	if u.Path == bp || strings.HasPrefix(u.Path, bp+"/") {
+		return pq
+	}
+	return fallback
 }
 
 func parseDSNRow(dsn string) (settingsRow, error) {
@@ -332,7 +365,7 @@ func splitAddr(addr string) (host, port string, err error) {
 }
 
 func (s *Server) handleSettingsGet(w http.ResponseWriter, r *http.Request) {
-	tok, err := csrf.Ensure(w, r)
+	tok, err := csrf.Ensure(w, r, s.cookiePath())
 	if err != nil {
 		http.Error(w, "csrf", http.StatusInternalServerError)
 		return
@@ -430,5 +463,5 @@ func (s *Server) handleSettingsPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/settings?msg=saved", http.StatusSeeOther)
+	http.Redirect(w, r, s.absPath("/settings?msg=saved"), http.StatusSeeOther)
 }
