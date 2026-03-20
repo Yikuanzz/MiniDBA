@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MiniDBA · 连接设置（Demo）</title>
+    <link rel="stylesheet" href="/static/css/theme.css" />
+  </head>
+  <body>
+    <header class="app-bar">
+      <div class="app-bar__brand">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="1.5" />
+          <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" stroke="currentColor" stroke-width="1.5" />
+          <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        <span>MiniDBA</span>
+      </div>
+      <div class="app-bar__field">
+        <label for="conn">当前连接</label>
+        <select id="conn" name="conn" aria-label="选择数据库连接">
+          <option value="prod" selected>prod</option>
+          <option value="staging">staging</option>
+        </select>
+      </div>
+      <span class="chip chip--readonly" style="margin-left: 4px" title="当前实例为只读模式">只读</span>
+      <div class="app-bar__spacer"></div>
+      <a href="/logout" class="app-bar__link">退出</a>
+      <span style="font-size: 0.75rem; opacity: 0.85; margin-left: 12px">UI Demo</span>
+    </header>
+
+    <div class="app-shell">
+      <aside class="drawer" aria-label="主导航">
+        <div class="nav-group">工作区</div>
+        <a class="nav-link" href="/">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
+            />
+          </svg>
+          SQL 执行
+        </a>
+        <a class="nav-link" href="/tables.html">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z" />
+          </svg>
+          表列表
+        </a>
+        <a class="nav-link" href="/browse.html">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3 18h12v-2H3v2zM3 6v2h18V6H3zm0 7h18v-2H3v2z" />
+          </svg>
+          数据浏览
+        </a>
+        <div class="nav-group">管理</div>
+        <a class="nav-link" href="/settings.html" aria-current="page">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+            />
+          </svg>
+          连接设置
+        </a>
+      </aside>
+
+      <main class="main-wrap">
+        <h1 class="page-title">连接设置</h1>
+        <p class="page-sub">与 <code style="font-size: 0.9em">config.yaml</code> 同一数据模型 · 保存后原子写回（正式版）</p>
+
+        <div class="alert alert--info" role="status">
+          <span aria-hidden="true">ⓘ</span>
+          <span>密码栏留空表示不修改已保存密码；响应中永不回显明文密码。</span>
+        </div>
+
+        <div class="conn-cards">
+          <section class="card conn-card">
+            <div class="card__header">
+              <span>连接 · prod</span>
+              <button type="button" class="btn btn--text">删除</button>
+            </div>
+            <div class="card__body">
+              <div class="field">
+                <label for="name-prod">展示名</label>
+                <input id="name-prod" class="input" type="text" value="prod" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="dsn-prod">DSN</label>
+                <textarea id="dsn-prod" class="textarea" style="min-height: 72px" spellcheck="false">
+user:***@tcp(10.0.0.5:3306)/appdb</textarea>
+                <p class="hint">Go MySQL DSN 格式，与配置文件中单条 <code>databases[].dsn</code> 一致。</p>
+              </div>
+              <div class="field">
+                <label for="pass-prod">密码（可选，修改时填写）</label>
+                <input id="pass-prod" class="input" type="password" placeholder="留空则不修改" autocomplete="new-password" />
+              </div>
+            </div>
+          </section>
+
+          <section class="card conn-card">
+            <div class="card__header">
+              <span>连接 · staging</span>
+              <button type="button" class="btn btn--text">删除</button>
+            </div>
+            <div class="card__body">
+              <div class="field">
+                <label for="name-stg">展示名</label>
+                <input id="name-stg" class="input" type="text" value="staging" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="dsn-stg">DSN</label>
+                <textarea id="dsn-stg" class="textarea" style="min-height: 72px" spellcheck="false">
+readonly:***@tcp(192.168.1.20:3306)/</textarea>
+              </div>
+              <div class="field">
+                <label for="pass-stg">密码（可选）</label>
+                <input id="pass-stg" class="input" type="password" placeholder="留空则不修改" autocomplete="new-password" />
+              </div>
+            </div>
+          </section>
+
+          <div class="card">
+            <div class="card__body">
+              <button type="button" class="btn btn--outlined">＋ 添加连接</button>
+              <div class="checkbox-field">
+                <input type="checkbox" id="readonly-global" checked />
+                <label for="readonly-global">全局只读（<code>readonly: true</code>）</label>
+              </div>
+            </div>
+            <div class="card__actions">
+              <button type="button" class="btn btn--primary" id="btn-save-demo">保存配置（演示）</button>
+              <button type="button" class="btn btn--outlined">放弃更改</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="page-sub" style="margin-top: 24px">
+          正式路由：<code>/settings</code> · 需在强鉴权后访问
+        </p>
+      </main>
+    </div>
+
+    <script>
+      document.getElementById("btn-save-demo").addEventListener("click", function () {
+        var el = document.createElement("div");
+        el.className = "alert alert--success";
+        el.setAttribute("role", "status");
+        el.innerHTML =
+          "<span aria-hidden=\"true\">✓</span><span>演示：此处将触发校验与写回 config（当前为静态页，无后端）。</span>";
+        var main = document.querySelector(".main-wrap");
+        main.insertBefore(el, main.children[3]);
+        setTimeout(function () {
+          el.remove();
+        }, 4200);
+      });
+    </script>
+  </body>
+</html>

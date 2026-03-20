@@ -1,0 +1,44 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  demo:
+    desc: "预览 UI 静态 Demo（127.0.0.1:18899，须在仓库根目录）"
+    cmds:
+      - go run ./cmd/demo
+
+  run:
+    desc: "启动应用"
+    cmds:
+      - task golangci:fmt
+      - go run main.go
+
+
+  build:
+    desc: "构建 Linux 二进制（从任意平台交叉编译）"
+    env:
+      CGO_ENABLED: "0"
+      GOOS: "linux"
+      GOARCH: "amd64"
+    cmds:
+      - task: golangci:fmt
+      - go env GOOS GOARCH CGO_ENABLED
+      - go build -ldflags="-s -w" -o ./release ./main.go
+      # - docker build -t backend_admin:latest .
+      # - docker save -o ./docker/registry/images/backend_admin.tar backend_admin:latest
+
+  # golangci-lint 检查
+  golangci:lint:
+    desc: "运行 golangci-lint 检查"
+    cmds:
+      - golangci-lint run
+
+  # golangci-lint 检查
+  golangci:fmt:
+    desc: "运行 golangci-lint 格式化"
+    cmds:
+      - go fmt ./...
+
+ 
+
