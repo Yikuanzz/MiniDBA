@@ -16,6 +16,14 @@ func ValidateTableName(name string) error {
 	return nil
 }
 
+// ValidateIdent 校验 SQL 标识符（列名等），与表名规则一致。
+func ValidateIdent(name string) error {
+	if !tableNameRe.MatchString(name) {
+		return fmt.Errorf("非法标识符")
+	}
+	return nil
+}
+
 // CheckBlacklist 危险语句（始终拒绝）。
 func CheckBlacklist(sql string) error {
 	s := strings.ToLower(strings.TrimSpace(sql))

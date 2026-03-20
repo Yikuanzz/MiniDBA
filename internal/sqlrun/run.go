@@ -31,7 +31,7 @@ func Run(ctx context.Context, db *sql.DB, sqlText string, readonly bool, maxRows
 		}
 	}
 	if IsQueryPath(sqlText) {
-		res, err := runQuery(ctx, db, sqlText, maxRows)
+		res, err := runQueryArgs(ctx, db, sqlText, nil, maxRows)
 		return res, nil, err
 	}
 	if readonly {
@@ -41,8 +41,22 @@ func Run(ctx context.Context, db *sql.DB, sqlText string, readonly bool, maxRows
 	return nil, ex, err
 }
 
-func runQuery(ctx context.Context, db *sql.DB, sqlText string, maxRows int) (*QueryResult, error) {
-	rows, err := db.QueryContext(ctx, sqlText)
+// RunReadonlyQuery 执行只读参数化查询（占位符 ?）；maxRows 为最多返回行数。
+func RunReadonlyQuery(ctx context.Context, db *sql.DB, sqlText string, args []interface{}, maxRows int) (*QueryResult, error) {
+	if err := CheckBlacklist(sqlText); err != nil {
+		return nil, err
+	}
+	if err := CheckReadonly(sqlText); err != nil {
+		return nil, err
+	}
+	if !IsQueryPath(sqlText) {
+		return nil, fmt.Errorf("仅支持查询语句")
+	}
+	return runQueryArgs(ctx, db, sqlText, args, maxRows)
+}
+
+func runQueryArgs(ctx context.Context, db *sql.DB, sqlText string, args []interface{}, maxRows int) (*QueryResult, error) {
+	rows, err := db.QueryContext(ctx, sqlText, args...)
 	if err != nil {
 		return nil, err
 	}

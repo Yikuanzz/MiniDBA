@@ -11,6 +11,15 @@ func TestValidateTableName(t *testing.T) {
 	}
 }
 
+func TestValidateIdent(t *testing.T) {
+	if ValidateIdent("col_a") != nil {
+		t.Fatal()
+	}
+	if ValidateIdent(";bad") == nil {
+		t.Fatal()
+	}
+}
+
 func TestCheckBlacklist(t *testing.T) {
 	if CheckBlacklist("SELECT 1") != nil {
 		t.Fatal()

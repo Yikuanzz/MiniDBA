@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -78,6 +80,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	s.syncConnCookie(w, r)
 	p := s.basePage(r, "SQL 工作台", "home", conn, tok, "", "")
 	p.SQL = strings.TrimSpace(r.URL.Query().Get("sql"))
+	p.SQLShortHash = shortSQLHash(p.SQL)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.homeT.ExecuteTemplate(w, "layout", p); err != nil {
 		log.Println(err)
@@ -100,6 +103,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 	cfg := s.cfgRL()
 	p := s.basePage(r, "SQL 工作台", "home", conn, tok, "", "")
 	p.SQL = sqlText
+	p.SQLShortHash = shortSQLHash(sqlText)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if !ok {
 		p.FlashErr = "未找到当前连接"
@@ -168,18 +172,37 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 	conn := s.currentConnName(r)
 	s.syncConnCookie(w, r)
-	table := strings.TrimSpace(getQuery(r, "table"))
+	qu := r.URL.Query()
+	table := strings.TrimSpace(qu.Get("table"))
 	page := 1
-	if p := getQuery(r, "page"); p != "" {
-		if n, err := strconv.Atoi(p); err == nil && n > 0 {
+	if pg := qu.Get("page"); pg != "" {
+		if n, err := strconv.Atoi(pg); err == nil && n > 0 {
 			page = n
 		}
 	}
 	cfg := s.cfgRL()
+	effectivePS := parseBrowsePS(qu.Get("ps"), cfg.PageSize, cfg.MaxPageSize)
+	sortCol := strings.TrimSpace(qu.Get("sort"))
+	dirRaw := qu.Get("dir")
+	sqlSortDir := parseSortDir(dirRaw)
+	sortDirUI := "asc"
+	if sqlSortDir == "DESC" {
+		sortDirUI = "desc"
+	}
+	fcol := strings.TrimSpace(qu.Get("fcol"))
+	fop := strings.TrimSpace(qu.Get("fop"))
+	fval := qu.Get("fval")
+
 	p := s.basePage(r, "数据浏览", "browse", conn, tok, "", "")
 	p.BrowseTable = table
 	p.Page = page
-	p.PageSize = cfg.PageSize
+	p.PageSize = effectivePS
+	p.BrowsePSChoices = browseSizeChoices(cfg.MaxPageSize)
+	p.SortCol = sortCol
+	p.SortDir = sortDirUI
+	p.FilterCol = fcol
+	p.FilterOp = fop
+	p.FilterVal = fval
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if table == "" {
 		_ = s.browseT.ExecuteTemplate(w, "layout", p)
@@ -198,15 +221,41 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := s.ctx()
 	defer cancel()
-
-	var total int
-	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM `%s`", table)
-	if err := db.QueryRowContext(ctx, countSQL).Scan(&total); err != nil {
+	colNames, colSet, err := browseTableColumns(ctx, db, table)
+	if err != nil {
 		p.FlashErr = err.Error()
 		_ = s.browseT.ExecuteTemplate(w, "layout", p)
 		return
 	}
-	pageCount := (total + cfg.PageSize - 1) / cfg.PageSize
+	whereSQL, filterArgs, err := buildBrowseFilter(fcol, fop, fval, colSet)
+	if err != nil {
+		p.FlashErr = err.Error()
+		_ = s.browseT.ExecuteTemplate(w, "layout", p)
+		return
+	}
+	orderSQL := ""
+	if sortCol != "" {
+		if err := sqlrun.ValidateIdent(sortCol); err != nil {
+			p.FlashErr = err.Error()
+			_ = s.browseT.ExecuteTemplate(w, "layout", p)
+			return
+		}
+		if _, ok := colSet[sortCol]; !ok {
+			p.FlashErr = "非法排序列"
+			_ = s.browseT.ExecuteTemplate(w, "layout", p)
+			return
+		}
+		orderSQL = fmt.Sprintf(" ORDER BY `%s` %s", sortCol, sqlSortDir)
+	}
+	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM `%s`%s", table, whereSQL)
+	var total int
+	if err := db.QueryRowContext(ctx, countSQL, filterArgs...).Scan(&total); err != nil {
+		p.FlashErr = err.Error()
+		_ = s.browseT.ExecuteTemplate(w, "layout", p)
+		return
+	}
+	p.TotalRows = total
+	pageCount := (total + effectivePS - 1) / effectivePS
 	if pageCount == 0 {
 		pageCount = 1
 	}
@@ -214,23 +263,88 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 		page = pageCount
 		p.Page = page
 	}
-	offset := (page - 1) * cfg.PageSize
+	offset := (page - 1) * effectivePS
 	p.Offset = offset
 	p.PageCount = pageCount
-
-	q := fmt.Sprintf("SELECT * FROM `%s` LIMIT %d OFFSET %d", table, cfg.PageSize, offset)
-	qres, _, err := sqlrun.Run(ctx, db, q, true, cfg.MaxPageSize)
+	dataSQL := fmt.Sprintf("SELECT * FROM `%s`%s%s LIMIT ? OFFSET ?", table, whereSQL, orderSQL)
+	dataArgs := append(append([]interface{}{}, filterArgs...), effectivePS, offset)
+	qres, err := sqlrun.RunReadonlyQuery(ctx, db, dataSQL, dataArgs, cfg.MaxPageSize)
 	if err != nil {
 		p.FlashErr = err.Error()
-	} else {
-		p.QueryResult = qres
-		p.RowCount = len(qres.Rows)
+		_ = s.browseT.ExecuteTemplate(w, "layout", p)
+		return
+	}
+	p.QueryResult = qres
+	p.RowCount = len(qres.Rows)
+	baseVals := url.Values{}
+	baseVals.Set("table", table)
+	baseVals.Set("ps", strconv.Itoa(effectivePS))
+	if sortCol != "" {
+		baseVals.Set("sort", sortCol)
+		baseVals.Set("dir", sortDirUI)
+	}
+	if fcol != "" {
+		baseVals.Set("fcol", fcol)
+		baseVals.Set("fop", fop)
+		baseVals.Set("fval", fval)
+	}
+	for _, col := range colNames {
+		nv := cloneURLValues(baseVals)
+		nv.Set("page", "1")
+		nv.Del("sort")
+		nv.Del("dir")
+		if sortCol == col && sqlSortDir == "DESC" {
+			// 第三次点击：清除排序
+		} else if sortCol == col && sqlSortDir == "ASC" {
+			nv.Set("sort", col)
+			nv.Set("dir", "desc")
+		} else {
+			nv.Set("sort", col)
+			nv.Set("dir", "asc")
+		}
+		sortURL := s.buildBrowseURL(nv)
+		marker := ""
+		if sortCol == col {
+			if sqlSortDir == "ASC" {
+				marker = "↑"
+			} else {
+				marker = "↓"
+			}
+		}
+		p.BrowseHeaderCols = append(p.BrowseHeaderCols, BrowseHeaderCol{Name: col, SortURL: sortURL, SortMarker: marker})
+	}
+	for _, c := range p.BrowsePSChoices {
+		nv := cloneURLValues(baseVals)
+		nv.Set("ps", strconv.Itoa(c))
+		nv.Set("page", "1")
+		p.BrowsePSLinks = append(p.BrowsePSLinks, BrowsePSLink{Size: c, Href: s.buildBrowseURL(nv)})
+	}
+	cur := cloneURLValues(baseVals)
+	cur.Set("page", strconv.Itoa(page))
+	p.BrowseQS = cur.Encode()
+	if page > 1 {
+		prev := cloneURLValues(cur)
+		prev.Set("page", strconv.Itoa(page-1))
+		p.BrowsePrevURL = s.buildBrowseURL(prev)
+	}
+	if page < pageCount {
+		next := cloneURLValues(cur)
+		next.Set("page", strconv.Itoa(page+1))
+		p.BrowseNextURL = s.buildBrowseURL(next)
 	}
 	_ = s.browseT.ExecuteTemplate(w, "layout", p)
 }
 
 func getQuery(r *http.Request, k string) string {
 	return r.URL.Query().Get(k)
+}
+
+func shortSQLHash(sql string) string {
+	if sql == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(sql))
+	return hex.EncodeToString(sum[:])[:12]
 }
 
 func (s *Server) handleSchema(w http.ResponseWriter, r *http.Request) {

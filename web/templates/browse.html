@@ -3,35 +3,109 @@
 {{if eq .BrowseTable ""}}
 <p class="page-sub">请从 <a href="{{.Base}}/tables">表列表</a> 选择一张表。</p>
 {{else}}
-<p class="page-sub">表 <strong>{{.BrowseTable}}</strong> · 每页 {{.PageSize}} 条，最多 {{.MaxPageSize}}</p>
+<p class="page-sub">表 <strong>{{.BrowseTable}}</strong> · 每页最多 {{.MaxPageSize}} 条（当前 {{.PageSize}} 条/页）· 表头同一列连点三次可取消排序</p>
 
+<div class="browse-page">
 <div class="card">
   <div class="card__body">
-    <div class="toolbar-meta" style="margin-bottom:0">
+    <form method="get" action="{{.Base}}/browse" class="browse-filter-form">
+      <input type="hidden" name="table" value="{{.BrowseTable}}" />
+      <input type="hidden" name="ps" value="{{.PageSize}}" />
+      <input type="hidden" name="page" value="1" />
+      {{if .SortCol}}<input type="hidden" name="sort" value="{{.SortCol}}" /><input type="hidden" name="dir" value="{{.SortDir}}" />{{end}}
+      <div class="browse-filter-grid">
+        <label class="field browse-filter-field">
+          <span class="field-label">列</span>
+          <div class="custom-select" data-custom-select>
+            <select name="fcol" class="input" id="browse-fcol">
+              <option value="">（不筛选）</option>
+              {{range .BrowseHeaderCols}}<option value="{{.Name}}" {{if eq $.FilterCol .Name}}selected{{end}}>{{.Name}}</option>{{end}}
+            </select>
+          </div>
+        </label>
+        <label class="field browse-filter-field">
+          <span class="field-label">规则</span>
+          <div class="custom-select" data-custom-select>
+            <select name="fop" class="input">
+              <option value="contains" {{if or (eq .FilterOp "") (eq .FilterOp "contains")}}selected{{end}}>包含</option>
+              <option value="eq" {{if eq .FilterOp "eq"}}selected{{end}}>等于</option>
+              <option value="prefix" {{if eq .FilterOp "prefix"}}selected{{end}}>前缀</option>
+              <option value="suffix" {{if eq .FilterOp "suffix"}}selected{{end}}>后缀</option>
+            </select>
+          </div>
+        </label>
+        <label class="field browse-filter-field browse-filter-grow">
+          <span class="field-label">值</span>
+          <input type="text" name="fval" class="input" id="browse-fval" value="{{.FilterVal}}" placeholder="筛选值" maxlength="200" />
+        </label>
+        <div class="browse-filter-actions">
+          <button type="submit" class="btn btn--primary">应用筛选</button>
+        </div>
+      </div>
+    </form>
+    {{if .QueryResult}}
+    <div class="toolbar-meta browse-toolbar-meta" style="margin-bottom:0">
+      <span>匹配总行数：<strong>{{.TotalRows}}</strong></span>
       <span>页码：<strong>{{.Page}}</strong> / <strong>{{.PageCount}}</strong></span>
       <span>本页：<strong>{{.RowCount}}</strong> 行</span>
     </div>
+    <p class="browse-ps-row">
+      <span class="browse-ps-label">每页条数：</span>
+      {{range .BrowsePSLinks}}
+      <a href="{{.Href}}" class="browse-ps-chip{{if eq $.PageSize .Size}} browse-ps-chip--active{{end}}">{{.Size}}</a>
+      {{end}}
+    </p>
+    {{end}}
   </div>
-  <div class="card__actions">
-    {{if gt .Page 1}}
-    <a class="btn btn--outlined browse-page-link" href="{{.Base}}/browse?table={{.BrowseTable}}&page={{dec .Page}}">上一页</a>
+  {{if .QueryResult}}
+  <div class="card__actions browse-card-actions">
+    {{if .BrowsePrevURL}}
+    <a class="btn btn--outlined" href="{{.BrowsePrevURL}}">上一页</a>
     {{else}}
     <button type="button" class="btn btn--outlined" disabled>上一页</button>
     {{end}}
-    {{if lt .Page .PageCount}}
-    <a class="btn btn--outlined browse-page-link" href="{{.Base}}/browse?table={{.BrowseTable}}&page={{inc .Page}}">下一页</a>
+    {{if .BrowseNextURL}}
+    <a class="btn btn--outlined" href="{{.BrowseNextURL}}">下一页</a>
     {{else}}
     <button type="button" class="btn btn--outlined" disabled>下一页</button>
     {{end}}
+    <form method="get" action="{{.Base}}/browse" class="browse-jump-form">
+      <input type="hidden" name="table" value="{{.BrowseTable}}" />
+      <input type="hidden" name="ps" value="{{.PageSize}}" />
+      {{if .SortCol}}<input type="hidden" name="sort" value="{{.SortCol}}" /><input type="hidden" name="dir" value="{{.SortDir}}" />{{end}}
+      {{if .FilterCol}}<input type="hidden" name="fcol" value="{{.FilterCol}}" /><input type="hidden" name="fop" value="{{.FilterOp}}" /><input type="hidden" name="fval" value="{{.FilterVal}}" />{{end}}
+      <label class="browse-jump-label">跳转至 <input type="number" class="input browse-jump-input" name="page" min="1" max="{{.PageCount}}" value="{{.Page}}" /> 页</label>
+      <button type="submit" class="btn btn--outlined">前往</button>
+    </form>
   </div>
+  {{end}}
 </div>
+<script>
+(function () {
+  var fc = document.getElementById("browse-fcol");
+  var fv = document.getElementById("browse-fval");
+  if (fc && fv) {
+    fc.addEventListener("change", function () {
+      if (fc.value === "") fv.value = "";
+    });
+  }
+})();
+</script>
 
-<div class="card">
-  <div class="card__header"><code style="font-family:var(--font-mono);font-size:0.85rem">SELECT * FROM {{.BrowseTable}} … LIMIT {{.PageSize}} OFFSET {{.Offset}}</code></div>
+{{if .QueryResult}}
+<div class="card browse-result-card">
+  <div class="card__header"><code class="browse-sql-hint">SELECT * FROM {{.BrowseTable}}{{if .FilterCol}} … WHERE …{{end}}{{if .SortCol}} ORDER BY {{.SortCol}} {{.SortDir}}{{end}} LIMIT {{.PageSize}} OFFSET {{.Offset}}</code></div>
   <div class="card__body" style="padding-top:0">
     <div class="table-scroll">
-      <table class="data-table">
-        <thead><tr>{{range .QueryResult.Columns}}<th>{{.}}</th>{{end}}</tr></thead>
+      <table class="data-table" data-dt-key="browse:{{.BrowseTable}}">
+        <colgroup>{{range .BrowseHeaderCols}}<col />{{end}}</colgroup>
+        <thead>
+          <tr>
+            {{range .BrowseHeaderCols}}
+            <th class="data-table__th-sort"><a href="{{.SortURL}}" class="data-table__sort-link">{{.Name}}<span class="data-table__sort-mark">{{.SortMarker}}</span></a></th>
+            {{end}}
+          </tr>
+        </thead>
         <tbody>
           {{range .QueryResult.Rows}}
           <tr>{{range .}}<td>{{.}}</td>{{end}}</tr>
@@ -53,5 +127,7 @@
   });
 })();
 </script>
+{{end}}
+</div>
 {{end}}
 {{end}}

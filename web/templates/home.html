@@ -32,10 +32,43 @@
   <span>行数：<strong>{{len .QueryResult.Rows}}</strong>{{if .QueryResult.Truncated}}（已截断）{{end}}</span>
 </div>
 <div class="card">
-  <div class="card__header">结果集</div>
+  <div class="card__header">结果筛选（仅当前页结果集）</div>
+  <div class="card__body">
+    <div class="browse-filter-grid sql-result-toolbar" id="sql-result-toolbar">
+      <label class="field browse-filter-field">
+        <span class="field-label">列</span>
+        <div class="custom-select" data-custom-select>
+          <select id="sql-filter-col" class="input"></select>
+        </div>
+      </label>
+      <label class="field browse-filter-field">
+        <span class="field-label">规则</span>
+        <div class="custom-select" data-custom-select>
+          <select id="sql-filter-op" class="input">
+            <option value="contains">包含</option>
+            <option value="eq">等于</option>
+            <option value="prefix">前缀</option>
+            <option value="suffix">后缀</option>
+          </select>
+        </div>
+      </label>
+      <label class="field browse-filter-field browse-filter-grow">
+        <span class="field-label">值</span>
+        <input type="text" id="sql-filter-val" class="input" placeholder="筛选值" maxlength="200" />
+      </label>
+      <div class="browse-filter-actions">
+        <button type="button" class="btn btn--primary" id="sql-filter-apply">应用筛选</button>
+        <button type="button" class="btn btn--outlined" id="sql-filter-clear">清除</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card__header">结果集 · 表头可点击排序（升序/降序切换）</div>
   <div class="card__body" style="padding-top:0">
     <div class="table-scroll">
-      <table class="data-table">
+      <table class="data-table sql-result-table" data-dt-key="home:{{.SQLShortHash}}">
+        <colgroup>{{range .QueryResult.Columns}}<col />{{end}}</colgroup>
         <thead>
           <tr>{{range .QueryResult.Columns}}<th>{{.}}</th>{{end}}</tr>
         </thead>

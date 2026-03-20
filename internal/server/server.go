@@ -167,32 +167,58 @@ func (s *Server) absPath(rel string) string {
 	return bp + rel
 }
 
+// BrowseHeaderCol 数据浏览表头排序链接。
+type BrowseHeaderCol struct {
+	Name       string
+	SortURL    string
+	SortMarker string
+}
+
+// BrowsePSLink 每页条数切换链接。
+type BrowsePSLink struct {
+	Size int
+	Href string
+}
+
 type pageData struct {
-	Base         string
-	Title        string
-	CSRF         string
-	NavActive    string
-	ConnName     string
-	Readonly     bool
-	Databases    []config.Database
-	FlashErr     string
-	FlashOK      string
-	MaxRows      int
-	SQL          string
-	QueryResult  *sqlrun.QueryResult
-	ExecInfo     *sqlrun.ExecResult
-	Tables       []string
-	BrowseTable  string
-	Page         int
-	PageCount    int
-	RowCount     int
-	PageSize     int
-	Offset       int
-	MaxPageSize  int
-	SchemaTable  string
-	Describe     *sqlrun.QueryResult
-	CreateSQL    string
-	SettingsRows []settingsRow
+	Base             string
+	Title            string
+	CSRF             string
+	NavActive        string
+	ConnName         string
+	Readonly         bool
+	Databases        []config.Database
+	FlashErr         string
+	FlashOK          string
+	MaxRows          int
+	SQL              string
+	SQLShortHash     string
+	QueryResult      *sqlrun.QueryResult
+	ExecInfo         *sqlrun.ExecResult
+	Tables           []string
+	BrowseTable      string
+	Page             int
+	PageCount        int
+	RowCount         int
+	TotalRows        int
+	PageSize         int
+	Offset           int
+	MaxPageSize      int
+	BrowseQS         string
+	BrowsePrevURL    string
+	BrowseNextURL    string
+	BrowsePSChoices  []int
+	BrowsePSLinks    []BrowsePSLink
+	SortCol          string
+	SortDir          string
+	FilterCol        string
+	FilterOp         string
+	FilterVal        string
+	BrowseHeaderCols []BrowseHeaderCol
+	SchemaTable      string
+	Describe         *sqlrun.QueryResult
+	CreateSQL        string
+	SettingsRows     []settingsRow
 }
 
 type settingsRow struct {

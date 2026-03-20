@@ -10,12 +10,14 @@
   </div>
   <form method="post" action="{{.Base}}/switch-db" class="app-bar__field" style="margin:0;display:flex;align-items:center;gap:8px">
     <input type="hidden" name="csrf_token" value="{{.CSRF}}" />
-    <label for="conn">当前连接</label>
-    <select id="conn" name="conn" aria-label="选择数据库连接" onchange="this.form.submit()">
-      {{range .Databases}}
-      <option value="{{.Name}}" {{if eq $.ConnName .Name}}selected{{end}}>{{.Name}}</option>
-      {{end}}
-    </select>
+    <span class="app-bar__field-text">当前连接</span>
+    <div class="custom-select custom-select--appbar" data-custom-select data-custom-select-submit>
+      <select id="conn" name="conn" aria-label="选择数据库连接">
+        {{range .Databases}}
+        <option value="{{.Name}}" {{if eq $.ConnName .Name}}selected{{end}}>{{.Name}}</option>
+        {{end}}
+      </select>
+    </div>
   </form>
   {{if .Readonly}}<span class="chip chip--readonly" style="margin-left:4px" title="只读模式">只读</span>{{end}}
   <div class="app-bar__spacer"></div>
