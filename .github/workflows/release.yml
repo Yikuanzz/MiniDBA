@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      LDFLAGS: -s -w
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Verify offline static assets
+        run: go run ./scripts/check_offline_urls.go
+
+      - name: Build and archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist build
+          pack_tar() {
+            local goos=$1 goarch=$2
+            local slug="mini-dba-${VERSION}-${goos}-${goarch}"
+            local dir="build/${slug}"
+            rm -rf "${dir}"
+            mkdir -p "${dir}"
+            GOOS="${goos}" GOARCH="${goarch}" CGO_ENABLED=0 \
+              go build -ldflags="${LDFLAGS}" -o "${dir}/mini-dba" .
+            cp LICENSE README.md config.example.yaml "${dir}/"
+            tar -czf "dist/${slug}.tar.gz" -C "${dir}" .
+          }
+          pack_zip() {
+            local goos=$1 goarch=$2
+            local slug="mini-dba-${VERSION}-${goos}-${goarch}"
+            local dir="build/${slug}"
+            rm -rf "${dir}"
+            mkdir -p "${dir}"
+            GOOS="${goos}" GOARCH="${goarch}" CGO_ENABLED=0 \
+              go build -ldflags="${LDFLAGS}" -o "${dir}/mini-dba.exe" .
+            cp LICENSE README.md config.example.yaml "${dir}/"
+            (cd "${dir}" && zip -q -r "../../dist/${slug}.zip" .)
+          }
+          pack_tar linux amd64
+          pack_tar linux arm64
+          pack_zip windows amd64
+          pack_zip windows arm64
+          pack_tar darwin amd64
+          pack_tar darwin arm64
+          ( cd dist && sha256sum *.tar.gz *.zip > "mini-dba_${VERSION}_checksums.txt" )
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/mini-dba_*_checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

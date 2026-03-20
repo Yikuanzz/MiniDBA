@@ -1,0 +1,49 @@
+{{define "content"}}
+<h1 class="page-title">连接设置</h1>
+<p class="page-sub">保存后写入配置文件并热重载连接（YAML 注释会丢失）。不修改 <code>secret_key</code>。</p>
+
+<form method="post" action="/settings">
+  <input type="hidden" name="csrf_token" value="{{.CSRF}}" />
+
+  {{range $i, $d := .SettingsRows}}
+  <section class="card conn-card" style="margin-bottom:16px">
+    <div class="card__header">连接 · {{$d.Name}}</div>
+    <div class="card__body">
+      <div class="field">
+        <label for="name_{{$i}}">展示名</label>
+        <input id="name_{{$i}}" class="input" name="name" value="{{$d.Name}}" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="host_{{$i}}">Host</label>
+        <input id="host_{{$i}}" class="input" name="host" value="{{$d.Host}}" required />
+      </div>
+      <div class="field">
+        <label for="port_{{$i}}">端口</label>
+        <input id="port_{{$i}}" class="input" name="port" value="{{$d.Port}}" required />
+      </div>
+      <div class="field">
+        <label for="user_{{$i}}">用户</label>
+        <input id="user_{{$i}}" class="input" name="user" value="{{$d.User}}" required autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="dbname_{{$i}}">数据库名</label>
+        <input id="dbname_{{$i}}" class="input" name="dbname" value="{{$d.DBName}}" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="pass_{{$i}}">新密码（可选）</label>
+        <input id="pass_{{$i}}" class="input" name="newpass" type="password" placeholder="留空则沿用原密码" autocomplete="new-password" />
+      </div>
+    </div>
+  </section>
+  {{end}}
+
+  <div class="card">
+    <div class="card__body">
+      <label class="checkbox-field"><input type="checkbox" name="readonly" value="1" {{if .Readonly}}checked{{end}} /> 全局只读</label>
+    </div>
+    <div class="card__actions">
+      <button type="submit" class="btn btn--primary">保存</button>
+    </div>
+  </div>
+</form>
+{{end}}

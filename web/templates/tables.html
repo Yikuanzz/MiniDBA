@@ -1,0 +1,23 @@
+{{define "content"}}
+<h1 class="page-title">表列表</h1>
+<p class="page-sub">SHOW TABLES</p>
+
+<div class="card">
+  <div class="card__header">当前库</div>
+  <div class="card__body" style="padding-top:0">
+    <div class="table-scroll" style="max-height:none">
+      <table class="data-table">
+        <thead><tr><th>表名</th><th style="width:140px">操作</th></tr></thead>
+        <tbody>
+          {{range .Tables}}
+          <tr>
+            <td><strong>{{.}}</strong></td>
+            <td><a href="/browse?table={{.}}">浏览</a> · <a href="/table/{{.}}/schema">结构</a></td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}

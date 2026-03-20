@@ -1,0 +1,27 @@
+{{define "content"}}
+<h1 class="page-title">表结构 · {{.SchemaTable}}</h1>
+<p class="page-sub"><a href="/tables">返回表列表</a> · <a href="/browse?table={{.SchemaTable}}">浏览数据</a></p>
+
+<div class="card">
+  <div class="card__header">DESCRIBE</div>
+  <div class="card__body" style="padding-top:0">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr>{{range .Describe.Columns}}<th>{{.}}</th>{{end}}</tr></thead>
+        <tbody>
+          {{range .Describe.Rows}}
+          <tr>{{range .}}<td>{{.}}</td>{{end}}</tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__header">SHOW CREATE TABLE</div>
+  <div class="card__body">
+    <pre class="textarea" style="min-height:120px;white-space:pre-wrap;margin:0">{{.CreateSQL}}</pre>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,22 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{.Title}} · MiniDBA</title>
+  <link rel="stylesheet" href="/static/css/theme.css" />
+</head>
+<body>
+  {{template "appbar" .}}
+  <div class="app-shell">
+    {{template "nav" .}}
+    <main class="main-wrap">
+      {{if .FlashErr}}<div class="alert alert--error" role="alert">{{.FlashErr}}</div>{{end}}
+      {{if .FlashOK}}<div class="alert alert--success" role="status">{{.FlashOK}}</div>{{end}}
+      {{template "content" .}}
+    </main>
+  </div>
+</body>
+</html>
+{{end}}

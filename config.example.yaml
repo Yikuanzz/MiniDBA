@@ -2,8 +2,14 @@
 
 secret_key: "请更换为足够长的随机串"
 
-listen: "127.0.0.1:8080"
+listen: "127.0.0.1:18080"
 readonly: true
+
+# 可选：查询上限与分页（省略则用默认 100 / 50 / 100）
+# max_result_rows: 100
+# page_size: 50
+# max_page_size: 100
+
 databases:
   - name: prod
     dsn: "user:pass@tcp(127.0.0.1:3306)/appdb"

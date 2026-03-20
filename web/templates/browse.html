@@ -1,0 +1,45 @@
+{{define "content"}}
+<h1 class="page-title">数据浏览</h1>
+{{if eq .BrowseTable ""}}
+<p class="page-sub">请从 <a href="/tables">表列表</a> 选择一张表。</p>
+{{else}}
+<p class="page-sub">表 <strong>{{.BrowseTable}}</strong> · 每页 {{.PageSize}} 条，最多 {{.MaxPageSize}}</p>
+
+<div class="card">
+  <div class="card__body">
+    <div class="toolbar-meta" style="margin-bottom:0">
+      <span>页码：<strong>{{.Page}}</strong> / <strong>{{.PageCount}}</strong></span>
+      <span>本页：<strong>{{.RowCount}}</strong> 行</span>
+    </div>
+  </div>
+  <div class="card__actions">
+    {{if gt .Page 1}}
+    <a class="btn btn--outlined browse-page-link" href="/browse?table={{.BrowseTable}}&page={{dec .Page}}">上一页</a>
+    {{else}}
+    <button type="button" class="btn btn--outlined" disabled>上一页</button>
+    {{end}}
+    {{if lt .Page .PageCount}}
+    <a class="btn btn--outlined browse-page-link" href="/browse?table={{.BrowseTable}}&page={{inc .Page}}">下一页</a>
+    {{else}}
+    <button type="button" class="btn btn--outlined" disabled>下一页</button>
+    {{end}}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card__header"><code style="font-family:var(--font-mono);font-size:0.85rem">SELECT * FROM {{.BrowseTable}} … LIMIT {{.PageSize}} OFFSET {{.Offset}}</code></div>
+  <div class="card__body" style="padding-top:0">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr>{{range .QueryResult.Columns}}<th>{{.}}</th>{{end}}</tr></thead>
+        <tbody>
+          {{range .QueryResult.Rows}}
+          <tr>{{range .}}<td>{{.}}</td>{{end}}</tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}

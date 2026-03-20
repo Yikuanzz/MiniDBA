@@ -1,0 +1,59 @@
+{{define "content"}}
+<h1 class="page-title">SQL 工作台</h1>
+<p class="page-sub">单次结果集最多 {{.MaxRows}} 行</p>
+
+<div class="card">
+  <div class="card__header">查询语句</div>
+  <div class="card__body">
+    <form method="post" action="/query" id="qform">
+      <input type="hidden" name="csrf_token" value="{{.CSRF}}" />
+      <div class="field">
+        <label for="sql">SQL</label>
+        <textarea id="sql" class="textarea" name="sql" spellcheck="false" rows="8">{{.SQL}}</textarea>
+      </div>
+      <div class="card__actions" style="padding:0">
+        <button type="submit" class="btn btn--primary">执行</button>
+        <button type="button" class="btn btn--outlined" id="btn-clear">清空</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{if .ExecInfo}}
+<div class="toolbar-meta">
+  <span>受影响行：<strong>{{.ExecInfo.RowsAffected}}</strong></span>
+  {{if ne .ExecInfo.LastInsertID 0}}<span>LastInsertId：<strong>{{.ExecInfo.LastInsertID}}</strong></span>{{end}}
+</div>
+{{end}}
+
+{{if .QueryResult}}
+<div class="toolbar-meta">
+  <span>列数：<strong>{{len .QueryResult.Columns}}</strong></span>
+  <span>行数：<strong>{{len .QueryResult.Rows}}</strong>{{if .QueryResult.Truncated}}（已截断）{{end}}</span>
+</div>
+<div class="card">
+  <div class="card__header">结果集</div>
+  <div class="card__body" style="padding-top:0">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>{{range .QueryResult.Columns}}<th>{{.}}</th>{{end}}</tr>
+        </thead>
+        <tbody>
+          {{range .QueryResult.Rows}}
+          <tr>{{range .}}<td>{{.}}</td>{{end}}</tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}
+
+<script>
+document.getElementById("btn-clear").addEventListener("click", function () {
+  document.getElementById("sql").value = "";
+  document.getElementById("sql").focus();
+});
+</script>
+{{end}}

@@ -3,20 +3,14 @@
 version: "3"
 
 tasks:
-  demo:
-    desc: "预览 UI 静态 Demo（127.0.0.1:18899，须在仓库根目录）"
-    cmds:
-      - go run ./cmd/demo
-
   run:
-    desc: "启动应用"
+    desc: "启动 MiniDBA（默认读取 ./config.yaml）"
     cmds:
       - task golangci:fmt
-      - go run main.go
-
+      - go run . -config config.yaml
 
   build:
-    desc: "构建 Linux 二进制（从任意平台交叉编译）"
+    desc: "构建 Linux 单二进制（嵌入模板与静态资源）"
     env:
       CGO_ENABLED: "0"
       GOOS: "linux"
@@ -24,21 +18,27 @@ tasks:
     cmds:
       - task: golangci:fmt
       - go env GOOS GOARCH CGO_ENABLED
-      - go build -ldflags="-s -w" -o ./release ./main.go
-      # - docker build -t backend_admin:latest .
-      # - docker save -o ./docker/registry/images/backend_admin.tar backend_admin:latest
+      - go build -ldflags="-s -w" -o ./release/mini-dba .
 
-  # golangci-lint 检查
+  release:verify-offline:
+    desc: "检查 web 模板与静态资源是否引用公网字体 CDN（与 CI 门禁一致）"
+    cmds:
+      - go run ./scripts/check_offline_urls.go
+
+  release:tag:
+    desc: "创建并推送版本 tag（触发 GitHub Release）；用法 task release:tag VERSION=v0.1.0"
+    requires:
+      vars: [VERSION]
+    cmds:
+      - git tag -a {{.VERSION}} -m "Release {{.VERSION}}"
+      - git push origin {{.VERSION}}
+
   golangci:lint:
     desc: "运行 golangci-lint 检查"
     cmds:
       - golangci-lint run
 
-  # golangci-lint 检查
   golangci:fmt:
     desc: "运行 golangci-lint 格式化"
     cmds:
       - go fmt ./...
-
- 
-
