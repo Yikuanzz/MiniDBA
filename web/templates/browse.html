@@ -14,7 +14,7 @@
   </div>
   <div class="card__actions">
     {{if gt .Page 1}}
-    <a class="btn btn--outlined browse-page-link" href="/browse?table={{.BrowseTable}}&page={{dec .Page}}">上一页</a>
+    <a class="btn btn--outlined browse-page-link" href="{{.Base}}/browse?table={{.BrowseTable}}&page={{dec .Page}}">上一页</a>
     {{else}}
     <button type="button" class="btn btn--outlined" disabled>上一页</button>
     {{end}}
@@ -41,5 +41,17 @@
     </div>
   </div>
 </div>
+<script>
+(function () {
+  var maxTitleLen = 4000;
+  document.querySelectorAll(".data-table tbody td").forEach(function (td) {
+    var t = td.textContent;
+    if (!t || t.length > maxTitleLen) return;
+    if (td.scrollHeight > td.clientHeight + 1 || td.scrollWidth > td.clientWidth + 1) {
+      td.title = t;
+    }
+  });
+})();
+</script>
 {{end}}
 {{end}}

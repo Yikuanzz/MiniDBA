@@ -21,7 +21,19 @@
 <div class="card">
   <div class="card__header">SHOW CREATE TABLE</div>
   <div class="card__body">
-    <pre class="textarea" style="min-height:120px;white-space:pre-wrap;margin:0">{{.CreateSQL}}</pre>
+    <pre class="textarea sql-ddl-block">{{.CreateSQL}}</pre>
   </div>
 </div>
+<script>
+(function () {
+  var maxTitleLen = 4000;
+  document.querySelectorAll(".data-table tbody td").forEach(function (td) {
+    var t = td.textContent;
+    if (!t || t.length > maxTitleLen) return;
+    if (td.scrollHeight > td.clientHeight + 1 || td.scrollWidth > td.clientWidth + 1) {
+      td.title = t;
+    }
+  });
+})();
+</script>
 {{end}}

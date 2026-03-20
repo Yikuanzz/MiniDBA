@@ -314,6 +314,16 @@ a:hover {
   box-shadow: 0 0 0 1px var(--md-primary);
 }
 
+/* 只读 DDL 等长文本块（表结构页） */
+pre.textarea.sql-ddl-block {
+  min-height: 120px;
+  max-height: min(48vh, 32rem);
+  overflow: auto;
+  white-space: pre-wrap;
+  margin: 0;
+  resize: vertical;
+}
+
 /* Alert */
 .alert {
   display: flex;
@@ -362,11 +372,16 @@ a:hover {
 .data-table tbody td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--md-divider);
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: min(36rem, 42vw);
+  max-height: 14rem;
+  overflow: auto;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   font-family: var(--font-mono);
   font-size: 0.75rem;
+  line-height: 1.35;
 }
 .data-table tbody tr:hover {
   background: rgba(0, 0, 0, 0.04);
