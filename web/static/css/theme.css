@@ -546,6 +546,7 @@ pre.textarea.sql-ddl-block {
 .data-table thead th {
   position: sticky;
   top: 0;
+  z-index: 1;
   background: #f5f5f5;
   text-align: left;
   padding: 10px 12px;
@@ -560,16 +561,16 @@ pre.textarea.sql-ddl-block {
 .data-table tbody td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--md-divider);
-  max-width: min(36rem, 42vw);
-  max-height: 14rem;
-  overflow: auto;
+  max-width: 300px;
+  overflow: hidden;
   vertical-align: top;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.35;
+  cursor: pointer;
+  transition: background 0.12s ease;
 }
 .data-table tbody tr:hover {
   background: rgba(0, 0, 0, 0.04);
@@ -631,6 +632,21 @@ pre.textarea.sql-ddl-block {
 }
 .data-table thead th:last-child .col-resize-handle:hover::before {
   background: var(--md-primary);
+}
+
+/* Sticky first column for horizontal scrolling */
+.data-table thead th:first-child,
+.data-table tbody td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--md-surface);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08);
+}
+.data-table thead th:first-child {
+  z-index: 3;
+}
+.data-table tbody td:first-child {
+  z-index: 2;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -861,4 +877,102 @@ pre.textarea.sql-ddl-block {
   .fade-in {
     animation: none;
   }
+}
+
+/* Modal for viewing full cell content */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal[hidden] {
+  display: none;
+}
+.modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+.modal__dialog {
+  position: relative;
+  background: var(--md-surface);
+  border-radius: var(--md-radius-md);
+  box-shadow: var(--md-elevation-2);
+  max-width: 80vw;
+  max-height: 80vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 24px;
+}
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--md-divider);
+}
+.modal__title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.modal__close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--md-on-surface-secondary);
+  padding: 0 4px;
+}
+.modal__close:hover {
+  color: var(--md-on-surface);
+}
+.modal__body {
+  padding: 16px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.modal__content {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: var(--md-radius-sm);
+  max-height: 50vh;
+  overflow: auto;
+}
+.modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--md-divider);
+}
+.modal--copied .modal__copy-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+.modal__copy-hint {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--md-on-surface);
+  color: var(--md-surface);
+  padding: 6px 14px;
+  border-radius: var(--md-radius-sm);
+  font-size: 0.8125rem;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
 }
