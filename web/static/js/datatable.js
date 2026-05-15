@@ -1,6 +1,8 @@
 (function () {
   var STORAGE_PREFIX = "minidba.dt.cols.";
   var MIN_W = 48;
+  var MAX_W = 300;
+  var CHAR_W = 7;
 
   function debounce(fn, ms) {
     var t;
@@ -11,6 +13,21 @@
         fn.apply(null, args);
       }, ms);
     };
+  }
+
+  function estimateWidth(ths, rows, colIdx) {
+    var maxLen = 0;
+    var headerText = ths[colIdx] ? (ths[colIdx].textContent || "").trim() : "";
+    maxLen = Math.max(maxLen, headerText.length);
+    for (var r = 0; r < Math.min(rows.length, 3); r++) {
+      var cells = rows[r].querySelectorAll("td");
+      if (colIdx < cells.length) {
+        var text = (cells[colIdx].textContent || "").trim();
+        maxLen = Math.max(maxLen, text.length);
+      }
+    }
+    var w = maxLen * CHAR_W + 24;
+    return Math.max(MIN_W, Math.min(MAX_W, w));
   }
 
   function initTable(table) {
@@ -45,6 +62,11 @@
     if (widths && widths.length === cols.length) {
       for (var j = 0; j < cols.length; j++) {
         if (widths[j] >= MIN_W) cols[j].style.width = widths[j] + "px";
+      }
+    } else {
+      var rows = table.querySelectorAll("tbody tr");
+      for (var cIdx = 0; cIdx < cols.length; cIdx++) {
+        cols[cIdx].style.width = estimateWidth(ths, rows, cIdx) + "px";
       }
     }
 
