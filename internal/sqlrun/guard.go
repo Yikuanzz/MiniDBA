@@ -24,6 +24,31 @@ func ValidateIdent(name string) error {
 	return nil
 }
 
+// stripLeadingComments 去除 SQL 前导的 /* ... */ 与 -- 注释及空白。
+func stripLeadingComments(sql string) string {
+	s := strings.TrimSpace(sql)
+	for {
+		if strings.HasPrefix(s, "/*") {
+			idx := strings.Index(s, "*/")
+			if idx < 0 {
+				break
+			}
+			s = strings.TrimSpace(s[idx+2:])
+			continue
+		}
+		if strings.HasPrefix(s, "--") {
+			idx := strings.Index(s, "\n")
+			if idx < 0 {
+				break
+			}
+			s = strings.TrimSpace(s[idx+1:])
+			continue
+		}
+		break
+	}
+	return s
+}
+
 // CheckBlacklist 危险语句（始终拒绝）。
 func CheckBlacklist(sql string) error {
 	s := strings.ToLower(strings.TrimSpace(sql))
@@ -55,7 +80,7 @@ func CheckReadonly(sql string) error {
 
 // IsQueryPath 使用 Query 而非 Exec 的前缀（粗粒度）。
 func IsQueryPath(sql string) bool {
-	s := strings.TrimSpace(sql)
+	s := stripLeadingComments(sql)
 	if s == "" {
 		return false
 	}

@@ -50,6 +50,18 @@ func TestIsQueryPath(t *testing.T) {
 	}
 }
 
+func TestIsQueryPathWithComments(t *testing.T) {
+	if !IsQueryPath("/* hint */ SELECT 1") {
+		t.Fatal("want query for leading block comment")
+	}
+	if !IsQueryPath("-- comment\nSELECT 1") {
+		t.Fatal("want query for leading line comment")
+	}
+	if IsQueryPath("/* hint */ INSERT INTO t VALUES (1)") {
+		t.Fatal("want exec for commented insert")
+	}
+}
+
 func TestFormatSQLCell(t *testing.T) {
 	if got := formatSQLCell(nil); got != "NULL" {
 		t.Fatal(got)
