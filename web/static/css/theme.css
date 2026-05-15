@@ -819,3 +819,46 @@ pre.textarea.sql-ddl-block {
     display: none;
   }
 }
+
+/* Exec result card */
+.exec-result-card {
+  background: var(--md-surface);
+  border-radius: var(--md-radius-md);
+  box-shadow: var(--md-elevation-1);
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-left: 4px solid var(--md-success);
+}
+.exec-result-card__header {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--md-success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.exec-result-card__body {
+  padding: 0 16px 12px;
+  font-size: 0.875rem;
+  color: var(--md-on-surface-secondary);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in {
+  animation: fadeInDown 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+  }
+}
