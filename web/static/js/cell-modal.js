@@ -67,7 +67,7 @@
 
   function attachCellListeners(root) {
     var tables = root.querySelectorAll
-      ? root.querySelectorAll("table.data-table")
+      ? root.querySelectorAll("table.data-table[data-dt-key]")
       : [];
     tables.forEach(function (table) {
       table.addEventListener("click", function (e) {
