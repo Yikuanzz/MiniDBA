@@ -30,6 +30,12 @@ func New(cfgPath string, assets embed.FS) (*Server, error) {
 	funcs := template.FuncMap{
 		"inc": func(i int) int { return i + 1 },
 		"dec": func(i int) int { return i - 1 },
+		"dur": func(d time.Duration) string {
+			if d < time.Millisecond {
+				return d.Round(time.Microsecond).String()
+			}
+			return d.Round(time.Millisecond).String()
+		},
 	}
 	parse := func(files ...string) *template.Template {
 		return template.Must(template.New("").Funcs(funcs).ParseFS(assets, files...))
