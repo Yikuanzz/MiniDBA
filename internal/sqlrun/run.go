@@ -18,6 +18,7 @@ type QueryResult struct {
 type ExecResult struct {
 	RowsAffected int64
 	LastInsertID int64
+	Duration     time.Duration
 }
 
 // Run 根据只读与语句类型执行；maxRows 为查询最大行数。
@@ -30,6 +31,7 @@ func Run(ctx context.Context, db *sql.DB, sqlText string, readonly bool, maxRows
 			return nil, nil, err
 		}
 	}
+	start := time.Now()
 	if IsQueryPath(sqlText) {
 		res, err := runQueryArgs(ctx, db, sqlText, nil, maxRows)
 		return res, nil, err
@@ -38,6 +40,9 @@ func Run(ctx context.Context, db *sql.DB, sqlText string, readonly bool, maxRows
 		return nil, nil, fmt.Errorf("只读模式禁止执行该语句")
 	}
 	ex, err := runExec(ctx, db, sqlText)
+	if ex != nil {
+		ex.Duration = time.Since(start)
+	}
 	return nil, ex, err
 }
 
