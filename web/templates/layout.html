@@ -17,9 +17,27 @@
       {{template "content" .}}
     </main>
   </div>
+  <div id="cell-modal" class="modal" hidden>
+    <div class="modal__overlay" data-modal-close></div>
+    <div class="modal__dialog">
+      <div class="modal__header">
+        <span class="modal__title">完整内容</span>
+        <button type="button" class="modal__close" data-modal-close aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal__body">
+        <pre class="modal__content" id="cell-modal-content"></pre>
+      </div>
+      <div class="modal__footer">
+        <span class="modal__copy-hint" id="cell-modal-hint">已复制</span>
+        <button type="button" class="btn btn--primary" id="cell-modal-copy">复制</button>
+        <button type="button" class="btn btn--outlined" data-modal-close>关闭</button>
+      </div>
+    </div>
+  </div>
   <script src="{{.Base}}/static/js/custom-select.js" defer></script>
   <script src="{{.Base}}/static/js/datatable.js" defer></script>
   <script src="{{.Base}}/static/js/sqlresult.js" defer></script>
+  <script src="{{.Base}}/static/js/cell-modal.js" defer></script>
 </body>
 </html>
 {{end}}
