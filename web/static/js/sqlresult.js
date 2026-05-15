@@ -149,7 +149,8 @@
 
   function go() {
     var t = document.querySelector("table.sql-result-table");
-    if (t) init(t);
+    var tb = document.getElementById("sql-result-toolbar");
+    if (t && tb) init(t);
   }
 
   if (document.readyState === "loading") {
